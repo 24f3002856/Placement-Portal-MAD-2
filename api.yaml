@@ -1,0 +1,1928 @@
+openapi: 3.0.3
+
+info:
+  title: Placement Portal API
+  version: 1.0.0
+  description: REST API for Placement Portal
+
+servers:
+  - url: https://localhost:5000/api
+
+tags:
+  - name: Authentication
+  - name: Company
+  - name: Student
+  - name: Drive
+  - name: Application
+  - name: Interview
+  - name: Placement
+  - name: Offer Letter
+  - name: Admin
+
+paths:
+
+  /login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticates Admin, Company or Student.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: admin123
+      responses:
+        '200':
+          description: Login Successful
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: Login Successful
+                      role:
+                        type: string
+                        example: admin
+
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: Login Successful
+                      role:
+                        type: string
+                        example: company
+                      company_id:
+                        type: integer
+                        example: 2
+
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: Login Successful
+                      role:
+                        type: string
+                        example: student
+                      student_id:
+                        type: integer
+                        example: 5
+
+        '400':
+          description: Missing username/password
+
+        '401':
+          description: Invalid Credentials
+
+        '403':
+          description: Pending approval / Blacklisted / Rejected
+
+  /logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Logout Successful
+
+  /application:
+
+    post:
+
+      tags:
+        - Application
+
+      summary: Apply for Placement Drive
+
+      description: Allows a student to apply for a placement drive.
+
+      security:
+        - sessionAuth: []
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              type: object
+
+              required:
+                - drive_id
+
+              properties:
+
+                drive_id:
+                  type: integer
+                  example: 8
+
+      responses:
+
+        '200':
+
+          description: Applied Successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Applied Successfully
+
+        '400':
+          description: Validation Error or Duplicate Application
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Student not found
+
+
+
+  /application/{application_id}:
+
+    get:
+
+      tags:
+        - Application
+
+      summary: View Application
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: application_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Application Details
+
+          content:
+
+            application/json:
+
+              schema:
+                $ref: '#/components/schemas/Application'
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Application not found
+
+
+
+    put:
+
+      tags:
+        - Application
+
+      summary: Update Application Status
+
+      description: Used by Company/Admin to update application status (Waiting, Shortlisted, Interview, Offer, Rejected, Selected).
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: application_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              type: object
+
+              required:
+                - status
+
+              properties:
+
+                status:
+
+                  type: string
+
+                  enum:
+                    - Waiting
+                    - Shortlisted
+                    - Interview
+                    - Offer
+                    - Rejected
+                    - Selected
+
+      responses:
+
+        '200':
+
+          description: Application updated successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Application updated successfully
+
+        '400':
+          description: Missing or Invalid Status
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Application not found
+
+
+
+  /applications:
+
+    get:
+
+      tags:
+        - Application
+
+      summary: List Applications
+
+      description: Returns applications filtered by student, drive or status.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: status
+          in: query
+          required: false
+
+          schema:
+
+            type: string
+
+            enum:
+              - Waiting
+              - Shortlisted
+              - Interview
+              - Offer
+              - Rejected
+              - Selected
+
+        - name: drive_id
+          in: query
+          required: false
+
+          schema:
+            type: integer
+
+        - name: student_id
+          in: query
+          required: false
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Application List
+
+          content:
+
+            application/json:
+
+              schema:
+
+                type: array
+
+                items:
+
+                  $ref: '#/components/schemas/Application'
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Student or Drive not found
+
+  /interview:
+
+    post:
+
+      tags:
+        - Interview
+
+      summary: Schedule Interview
+
+      description: Schedules an interview for a shortlisted application.
+
+      security:
+        - sessionAuth: []
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              type: object
+
+              required:
+                - application_id
+                - date
+                - time
+                - mode
+
+              properties:
+
+                application_id:
+                  type: integer
+                  example: 12
+
+                date:
+                  type: string
+                  format: date
+                  example: 2026-08-25
+
+                time:
+                  type: string
+                  example: "10:30"
+
+                mode:
+                  type: string
+                  example: Online
+
+                meeting_link:
+                  type: string
+                  example: https://meet.google.com/abc-defg-hij
+
+                instructions:
+                  type: string
+                  example: Join 10 minutes before the interview.
+
+      responses:
+
+        '201':
+
+          description: Interview scheduled successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Interview scheduled successfully
+                interview_id: 8
+
+        '400':
+          description: Missing or Invalid Input
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Company or Application not found
+
+
+
+  /interview/{interview_id}:
+
+    get:
+
+      tags:
+        - Interview
+
+      summary: View Interview
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: interview_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Interview Details
+
+          content:
+
+            application/json:
+
+              schema:
+                $ref: '#/components/schemas/Interview'
+
+        '404':
+          description: Interview not found
+
+
+
+    put:
+
+      tags:
+        - Interview
+
+      summary: Update Interview Status
+
+      description: Updates interview status.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: interview_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              type: object
+
+              required:
+                - status
+
+              properties:
+
+                status:
+
+                  type: string
+
+                  enum:
+                    - Scheduled
+                    - Completed
+                    - Cancelled
+
+      responses:
+
+        '200':
+
+          description: Interview status updated successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Interview status updated successfully
+
+        '400':
+          description: Missing or Invalid Status
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Interview or Company not found
+
+  /placement:
+
+    post:
+
+      tags:
+        - Placement
+
+      summary: Create Placement
+
+      description: >
+        Creates a placement record for a selected student.
+        The corresponding application status is updated to **Selected**
+        and interview status is marked as **Completed**.
+
+      security:
+        - sessionAuth: []
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              type: object
+
+              required:
+                - application_id
+                - position
+                - salary
+                - joining_date
+
+              properties:
+
+                application_id:
+                  type: integer
+                  example: 15
+
+                position:
+                  type: string
+                  example: Software Engineer
+
+                salary:
+                  type: integer
+                  example: 1200000
+
+                joining_date:
+                  type: string
+                  format: date
+                  example: 2026-09-01
+
+      responses:
+
+        '201':
+
+          description: Placement created successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Placement created successfully
+                placement_id: 7
+
+        '400':
+          description: Missing or Invalid Input
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Company or Application not found
+
+
+
+  /placement/{placement_id}:
+
+    get:
+
+      tags:
+        - Placement
+
+      summary: View Placement
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: placement_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Placement Details
+
+          content:
+
+            application/json:
+
+              schema:
+                $ref: '#/components/schemas/Placement'
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Placement not found
+
+
+
+    put:
+
+      tags:
+        - Placement
+
+      summary: Update Offer Status
+
+      description: Student accepts or rejects the placement offer.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: placement_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          application/json:
+
+            schema:
+
+              type: object
+
+              required:
+                - offer_status
+
+              properties:
+
+                offer_status:
+
+                  type: string
+
+                  enum:
+                    - Pending
+                    - Accepted
+                    - Rejected
+
+      responses:
+
+        '200':
+
+          description: Offer status updated successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Offer Status updated successfully
+
+        '400':
+          description: Invalid Offer Status
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Placement not found
+
+
+
+  /placements:
+
+    get:
+
+      tags:
+        - Placement
+
+      summary: List Placements
+
+      description: Returns placement records filtered by student, company or offer status.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: offer_status
+          in: query
+          required: false
+
+          schema:
+
+            type: string
+
+            enum:
+              - Pending
+              - Accepted
+              - Rejected
+
+        - name: student_id
+          in: query
+          required: false
+
+          schema:
+            type: integer
+
+        - name: company_id
+          in: query
+          required: false
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Placement List
+
+          content:
+
+            application/json:
+
+              schema:
+
+                type: array
+
+                items:
+
+                  $ref: '#/components/schemas/Placement'
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Student or Company not found
+
+
+
+  /offer_letter:
+
+    post:
+
+      tags:
+        - Offer Letter
+
+      summary: Upload Offer Letter
+
+      description: Uploads the offer letter PDF corresponding to a placement.
+
+      security:
+        - sessionAuth: []
+
+      requestBody:
+
+        required: true
+
+        content:
+
+          multipart/form-data:
+
+            schema:
+
+              type: object
+
+              required:
+                - placement_id
+                - offer_letter
+
+              properties:
+
+                placement_id:
+                  type: integer
+                  example: 7
+
+                offer_letter:
+                  type: string
+                  format: binary
+
+      responses:
+
+        '201':
+
+          description: Offer Letter uploaded successfully
+
+          content:
+
+            application/json:
+
+              schema:
+                $ref: '#/components/schemas/OfferLetter'
+
+        '400':
+          description: Offer Letter PDF missing
+
+        '401':
+          description: Login Required
+
+
+
+  /offer_letter/{placement_id}:
+
+    get:
+
+      tags:
+        - Offer Letter
+
+      summary: View Offer Letter
+
+      description: Returns the uploaded offer letter corresponding to a placement.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: placement_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Offer Letter Details
+
+          content:
+
+            application/json:
+
+              schema:
+                $ref: '#/components/schemas/OfferLetter'
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Unauthorized Access
+
+        '404':
+          description: Offer Letter or Placement not found
+
+  /admin/dashboard:
+
+    get:
+
+      tags:
+        - Admin
+
+      summary: Admin Dashboard
+
+      description: Returns dashboard statistics for the administrator.
+
+      security:
+        - sessionAuth: []
+
+      responses:
+
+        '200':
+
+          description: Dashboard Statistics
+
+          content:
+
+            application/json:
+
+              schema:
+
+                type: object
+
+                properties:
+
+                  registered_companies:
+                    type: integer
+
+                  registered_students:
+                    type: integer
+
+                  ongoing_drives:
+                    type: integer
+
+                  applications:
+                    type: integer
+
+                  placed_students:
+                    type: integer
+
+              example:
+
+                registered_companies: 15
+                registered_students: 240
+                ongoing_drives: 18
+                applications: 612
+                placed_students: 92
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Admin access required
+
+
+
+  /admin/search:
+
+    get:
+
+      tags:
+        - Admin
+
+      summary: Global Search
+
+      description: Searches Companies, Students, Drives, Applications and Placements.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: q
+          in: query
+          required: true
+
+          schema:
+            type: string
+
+          example: Google
+
+      responses:
+
+        '200':
+
+          description: Search Results
+
+          content:
+
+            application/json:
+
+              schema:
+
+                type: object
+
+                properties:
+
+                  companies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Company'
+
+                  students:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+
+                  drives:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Drive'
+
+                  applications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Application'
+
+                  placements:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Placement'
+
+        '400':
+          description: Search query required
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Admin access required
+
+
+
+  /admin/company/{company_id}/approve:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Approve Company
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: company_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Company approved successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Company approved
+
+        '404':
+          description: Company not found
+
+
+
+  /admin/company/{company_id}/reject:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Reject Company
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: company_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Company rejected successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Company rejected
+
+        '404':
+          description: Company not found
+
+
+
+  /admin/company/{company_id}/blacklist:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Blacklist Company
+
+      description: >
+        Blacklists a company, rejects all its active drives,
+        resets pending applications to Waiting and cancels scheduled interviews.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: company_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Company blacklisted successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Company blacklisted successfully
+
+        '404':
+          description: Company not found
+
+
+
+  /admin/company/{company_id}/whitelist:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Whitelist Company
+
+      description: Removes a company from blacklist and resets its drives to Pending.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: company_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Company whitelisted successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Company whitelisted successfully
+
+        '404':
+          description: Company not found
+
+
+
+  /admin/student/{student_id}/blacklist:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Blacklist Student
+
+      description: Rejects all active applications and cancels scheduled interviews.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: student_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Student blacklisted successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Student blacklisted successfully
+
+        '404':
+          description: Student not found
+
+
+
+  /admin/student/{student_id}/whitelist:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Whitelist Student
+
+      description: Removes the student from blacklist and restores active applications to Waiting.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: student_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Student whitelisted successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Student whitelisted successfully
+
+        '404':
+          description: Student not found
+
+
+
+  /admin/drive/{drive_id}/approve:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Approve Placement Drive
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: drive_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Drive approved successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Drive approved
+
+        '404':
+          description: Drive not found
+
+
+
+  /admin/drive/{drive_id}/reject:
+
+    put:
+
+      tags:
+        - Admin
+
+      summary: Reject Placement Drive
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: drive_id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+
+        '200':
+
+          description: Drive rejected successfully
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: Drive rejected
+
+        '404':
+          description: Drive not found
+
+
+
+  /company/dashboard:
+
+    get:
+
+      tags:
+        - Company
+
+      summary: Company Dashboard
+
+      description: Returns dashboard statistics for the logged-in company.
+
+      security:
+        - sessionAuth: []
+
+      responses:
+
+        '200':
+
+          description: Dashboard Statistics
+
+          content:
+
+            application/json:
+
+              example:
+
+                ongoing_drives: 4
+                applications: 57
+                shortlisted_students: 14
+                placed_students: 6
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Company access required
+
+        '404':
+          description: Company not found
+
+
+
+  /student/dashboard:
+
+    get:
+
+      tags:
+        - Student
+
+      summary: Student Dashboard
+
+      description: Returns dashboard statistics for the logged-in student.
+
+      security:
+        - sessionAuth: []
+
+      responses:
+
+        '200':
+
+          description: Dashboard Statistics
+
+          content:
+
+            application/json:
+
+              example:
+
+                applied_drives: 12
+                interviews: 3
+                offers: 1
+                placements: 1
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Student access required
+
+        '404':
+          description: Student not found
+
+
+
+  /student/search:
+
+    get:
+
+      tags:
+        - Student
+
+      summary: Student Search
+
+      description: Searches approved drives, applications and placements belonging to the logged-in student.
+
+      security:
+        - sessionAuth: []
+
+      parameters:
+
+        - name: q
+          in: query
+          required: true
+
+          schema:
+            type: string
+
+      responses:
+
+        '200':
+          description: Search Results
+
+        '400':
+          description: Search query required
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Student access required
+
+
+
+  /student/export:
+
+    post:
+
+      tags:
+        - Student
+
+      summary: Export Applications as CSV
+
+      description: Starts an asynchronous Celery task to export the student's applications as a CSV file.
+
+      security:
+        - sessionAuth: []
+
+      responses:
+
+        '202':
+
+          description: Export task started
+
+          content:
+
+            application/json:
+
+              example:
+
+                message: CSV export started successfully.
+                task_id: 2a7b7f0f-69cd-47c3-8f93-56f4b4dcd124
+
+        '401':
+          description: Login Required
+
+        '403':
+          description: Student access required
+
+        '404':
+          description: Student not found
+
+components:
+
+  securitySchemes:
+
+    sessionAuth:
+
+      type: apiKey
+
+      in: cookie
+
+      name: session
+
+  schemas:
+
+    Company:
+
+      type: object
+
+      properties:
+
+        company_id:
+          type: integer
+          example: 1
+
+        company_name:
+          type: string
+          example: Google
+
+        hr_contact:
+          type: string
+          example: John Smith
+
+        website:
+          type: string
+          example: https://careers.google.com
+
+        overview:
+          type: string
+          example: Global technology company.
+
+        approval_status:
+          type: string
+          enum:
+            - Pending
+            - Approved
+            - Rejected
+
+        blacklist_flag:
+          type: string
+          enum:
+            - Yes
+            - No
+
+
+
+    Student:
+
+      type: object
+
+      properties:
+
+        student_id:
+          type: integer
+          example: 10
+
+        student_name:
+          type: string
+          example: Rahul Sharma
+
+        gender:
+          type: string
+          example: Male
+
+        department:
+          type: string
+          example: CSE
+
+        education:
+          type: string
+          example: B.Tech
+
+        cgpa:
+          type: number
+          format: float
+          example: 8.72
+
+        skills:
+          type: string
+          example: Python, Flask, SQL
+
+        contact:
+          type: string
+          example: 9876543210
+
+        resume:
+          type: string
+          example: static/uploads/resumes/resume_10.pdf
+
+        blacklist_flag:
+          type: string
+          enum:
+            - Yes
+            - No
+
+
+
+    Drive:
+
+      type: object
+
+      properties:
+
+        drive_id:
+          type: integer
+
+        company_id:
+          type: integer
+
+        company_name:
+          type: string
+
+        job_title:
+          type: string
+
+        job_description:
+          type: string
+
+        salary:
+          type: integer
+
+        location:
+          type: string
+
+        required_skills:
+          type: string
+
+        minimum_cgpa:
+          type: number
+          format: float
+
+        application_deadline:
+          type: string
+          format: date
+
+        status:
+          type: string
+          enum:
+            - Pending
+            - Approved
+            - Rejected
+            - Closed
+
+
+
+    Interview:
+
+      type: object
+
+      properties:
+
+        interview_id:
+          type: integer
+
+        application_id:
+          type: integer
+
+        date:
+          type: string
+          format: date
+
+        time:
+          type: string
+
+        mode:
+          type: string
+
+        meeting_link:
+          type: string
+
+        instructions:
+          type: string
+
+        status:
+          type: string
+          enum:
+            - Scheduled
+            - Completed
+            - Cancelled
+
+
+
+    Application:
+
+      type: object
+
+      properties:
+
+        application_id:
+          type: integer
+
+        student_id:
+          type: integer
+
+        drive_id:
+          type: integer
+
+        student_name:
+          type: string
+
+        company_name:
+          type: string
+
+        job_title:
+          type: string
+
+        application_date:
+          type: string
+          format: date
+
+        status:
+          type: string
+          enum:
+            - Waiting
+            - Shortlisted
+            - Interview
+            - Offer
+            - Rejected
+            - Selected
+
+        interview:
+          $ref: '#/components/schemas/Interview'
+
+
+
+    Placement:
+
+      type: object
+
+      properties:
+
+        placement_id:
+          type: integer
+
+        application_id:
+          type: integer
+
+        student_id:
+          type: integer
+
+        company_id:
+          type: integer
+
+        student_name:
+          type: string
+
+        company_name:
+          type: string
+
+        position:
+          type: string
+
+        salary:
+          type: integer
+
+        joining_date:
+          type: string
+          format: date
+
+        offer_status:
+          type: string
+          enum:
+            - Pending
+            - Accepted
+            - Rejected
+
+
+
+    OfferLetter:
+
+      type: object
+
+      properties:
+
+        offer_id:
+          type: integer
+
+        placement_id:
+          type: integer
+
+        pdf_path:
+          type: string
+          example: static/uploads/offers/offer_5.pdf
+
+
+
+    ErrorResponse:
+
+      type: object
+
+      properties:
+
+        error_code:
+          type: string
+          example: BE1201
+
+        error_message:
+          type: string
+          example: Unauthorized Access
+
+
+
+  responses:
+
+    BadRequest:
+
+      description: Validation Error
+
+      content:
+
+        application/json:
+
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+
+      description: Login Required
+
+      content:
+
+        application/json:
+
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+
+      description: Unauthorized Access
+
+      content:
+
+        application/json:
+
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+
+      description: Requested Resource Not Found
+
+      content:
+
+        application/json:
+
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
