@@ -130,7 +130,9 @@ const API = {
         const params = new URLSearchParams(filters);
         return this.request(`/students?${params.toString()}`);
     },
-    
+    exportApplications() {
+        return this.request("/student/export", "POST");
+    },
 
     //-------------------------
     // DRIVES

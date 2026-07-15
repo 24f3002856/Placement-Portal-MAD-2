@@ -1447,5 +1447,19 @@ class StudentSearchAPI(Resource):
 # class StudentViewAppliedDrive(Resource): DriveAPI.get(), ApplicationAPI.get()
 
 
+class ExportStudentCSVAPI(Resource): # /api/student/export
+    method_decorators = [login_required, roles_required("student")]
 
+    def post(self):
+        from application.tasks import export_student_csv
+        student = Student.query.filter_by(user_id=current_user.id).first()
+        if student is None:
+            raise NotFoundError(status_code=404)
+
+        task = export_student_csv.delay(student.student_id)
+
+        return {
+            "message": "CSV export started successfully.",
+            "task_id": task.id
+        }, 202
     
