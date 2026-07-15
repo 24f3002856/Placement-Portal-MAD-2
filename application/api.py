@@ -11,7 +11,7 @@ from application.models import *
 from application.database import db
 from application.validation import NotFoundError, BusinessValidationError
 from application.extensions import user_datastore
-
+from application.cache import cache
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -264,7 +264,7 @@ class CompanyAPI(Resource):
 
         db.session.add(company)
         db.session.commit()
-        
+        cache.clear()
 
         return {
             "message": "Company registered successfully",
@@ -305,7 +305,7 @@ class CompanyAPI(Resource):
             company.overview = overview
 
         db.session.commit()
-        
+        cache.clear()
         return {
             "message": "Profile updated successfully"
         }, 200
@@ -314,7 +314,7 @@ class CompanyListAPI(Resource):
     method_decorators = [login_required, roles_accepted("admin", "student")]
 
     @marshal_with(Company_OP)   
-    
+    @cache.cached(timeout=120) 
     def get(self):
         approval = request.args.get("approval")
         blacklist = request.args.get("blacklist")
@@ -441,7 +441,7 @@ class StudentListAPI(Resource):
     method_decorators = [login_required, roles_accepted("admin", "company")]
 
     @marshal_with(Student_OP)
-    
+    @cache.cached(timeout=120)
     def get(self):
         blacklist = request.args.get("blacklist")
 
@@ -531,7 +531,7 @@ class DriveAPI(Resource):
             
         drive.status = "Closed"
         db.session.commit()
-        
+        cache.clear()
         return {"message": "Drive closed"}, 200
         
     def post(self):
@@ -585,6 +585,7 @@ class DriveAPI(Resource):
 
         db.session.add(new_drive)
         db.session.commit()
+        cache.clear()
         return {
             "message": "Drive created successfully",
             "drive_id": new_drive.drive_id
@@ -594,6 +595,7 @@ class DriveListAPI(Resource):
     method_decorators = [login_required]
 
     @marshal_with(Drive_OP)
+    @cache.cached(timeout=120)
     def get(self):
         status = request.args.get("status")
         company_id = request.args.get("company_id", type = int)
@@ -714,6 +716,7 @@ class ApplicationAPI(Resource):
         if application.status == "Rejected" and application.interview:
             application.interview.status = "Completed"
         db.session.commit()
+        cache.clear()
         return {
             "message": "Application updated successfully"
         },200
@@ -753,6 +756,7 @@ class ApplicationAPI(Resource):
         
         db.session.add(new_application)
         db.session.commit()
+        cache.clear()
         return {
             "message" : "Applied Successfully"
         }, 200
@@ -761,6 +765,7 @@ class ApplicationListAPI(Resource):
     method_decorators = [login_required]
 
     @marshal_with(Application_OP)
+    @cache.cached(timeout=120)
     def get(self):
         status = request.args.get("status")        
         drive_id = request.args.get("drive_id", type=int)
@@ -864,6 +869,7 @@ class InterviewAPI(Resource):
             )
         interview.status = status
         db.session.commit()
+        cache.clear()
 
         return {
             "message": "Interview status updated successfully"
@@ -926,6 +932,7 @@ class InterviewAPI(Resource):
 
         db.session.add(new_interview)
         db.session.commit()        
+        cache.clear()
 
         return {
             "message": "Interview scheduled successfully",
@@ -1013,6 +1020,7 @@ class PlacementAPI(Resource):
         placement = Placement.query.filter_by(placement_id = placement_id).first()
         placement.offer_status = offer_status
         db.session.commit()
+        cache.clear()
 
         return {
             "message": "Offer Status updated successfully",
@@ -1078,6 +1086,7 @@ class PlacementAPI(Resource):
 
         db.session.add(new_placement)
         db.session.commit()  
+        cache.clear()      
 
         return {
             "message": "Placement created successfully",
@@ -1087,6 +1096,7 @@ class PlacementAPI(Resource):
 class PlacementListAPI(Resource):
     method_decorators = [login_required]
 
+    @cache.cached(timeout=120)
     @marshal_with(Placement_OP)
     def get(self):        
         offer_status = request.args.get("offer_status")
@@ -1203,6 +1213,7 @@ class OfferLetterAPI(Resource):
 class AdminDashboard(Resource): # GET /api/admin/dashboard
     
     method_decorators = [login_required, roles_required("admin")]
+    @cache.cached(timeout=120)
     def get(self):
         # Stats
         return {
@@ -1217,6 +1228,7 @@ class AdminDashboard(Resource): # GET /api/admin/dashboard
 class AdminSearchAPI(Resource):
     method_decorators = [login_required, roles_required("admin")]
 
+    @cache.cached(timeout=60,query_string=True)
     def get(self):
         q = request.args.get("q", "").strip()
         if not q:
@@ -1257,6 +1269,7 @@ class CompanyBlacklistAPI(Resource): # PUT /api/admin/company/<id>/blacklist
                     if app.interview:
                         app.interview.status = "Cancelled"
         db.session.commit()
+        cache.clear()
         
         return {
             "message": "Company blacklisted successfully"
@@ -1278,6 +1291,7 @@ class StudentBlacklistAPI(Resource): # PUT /api/admin/student/<id>/blacklist
                 if app.interview:
                     app.interview.status = "Cancelled"
         db.session.commit()
+        cache.clear()
 
         return {
             "message": "Student blacklisted successfully"
@@ -1292,6 +1306,7 @@ class CompanyApproval(Resource): # PUT /api/admin/company/<company_id>/approve
             raise NotFoundError(status_code=404)
         company.approval_status = "Approved"
         db.session.commit()
+        cache.clear()
         return {
             "message":"Company approved"
         }, 200
@@ -1305,6 +1320,7 @@ class CompanyRejection(Resource): # PUT /api/admin/company/<company_id>/reject
             raise NotFoundError(status_code=404)
         company.approval_status = "Rejected"
         db.session.commit()
+        cache.clear()
         return {
             "message":"Company rejected"
         }, 200
@@ -1318,6 +1334,7 @@ class DriveApproval(Resource): # PUT /api/admin/drive/<drive_id>/approve
             raise NotFoundError(status_code = 404)
         drive.status = "Approved"
         db.session.commit()
+        cache.clear()
         return {
             "message":"Drive approved"
         }, 200
@@ -1331,6 +1348,7 @@ class DriveRejection(Resource): # PUT /api/admin/drive/<drive_id>/reject
             raise NotFoundError(status_code = 404)
         drive.status = "Rejected"
         db.session.commit()
+        cache.clear()
         return {
             "message":"Drive rejected"
         }, 200
@@ -1351,6 +1369,7 @@ class CompanyWhitelistAPI(Resource): # PUT /api/admin/company/<id>/whitelist
         for drive in drives:
             drive.status = "Pending"
         db.session.commit()
+        cache.clear()
         
         return {
             "message": "Company whitelisted successfully"
@@ -1369,6 +1388,7 @@ class StudentWhitelistAPI(Resource): # PUT /api/admin/student/<id>/whitelist
             if app.status != "Selected":
                 app.status = "Waiting"
         db.session.commit()
+        cache.clear()
 
         return {
             "message": "Student whitelisted successfully"
@@ -1377,6 +1397,7 @@ class StudentWhitelistAPI(Resource): # PUT /api/admin/student/<id>/whitelist
 
 class CompanyDashboardAPI(Resource): # GET /api/company/dashboard
     method_decorators = [login_required, roles_required("company")]
+    @cache.cached(timeout=120)
     def get(self):
         # Stats
         company = Company.query.filter_by(user_id = current_user.id, approval_status = "Approved", blacklist_flag = "No").first()
@@ -1401,6 +1422,7 @@ class CompanyDashboardAPI(Resource): # GET /api/company/dashboard
 
 class StudentDashboard(Resource): # GET /api/student/dashboard
     method_decorators = [login_required, roles_required("student")]
+    @cache.cached(timeout=120)
     def get(self):
         # Stats
         student = Student.query.filter_by(user_id = current_user.id, blacklist_flag = "No").first()
@@ -1420,6 +1442,7 @@ class StudentDashboard(Resource): # GET /api/student/dashboard
 class StudentSearchAPI(Resource):
     method_decorators = [login_required, roles_required("student")]
     
+    @cache.cached(timeout=60, query_string=True)
     def get(self):
         student = Student.query.filter_by(user_id = current_user.id).first()
         student_id = student.student_id
