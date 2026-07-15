@@ -23,6 +23,8 @@ class User(db.Model, UserMixin):
     )
 
     roles = db.relationship("Role",secondary = "roles_users", backref = db.backref("users", lazy = "dynamic"))
+    student = db.relationship("Student",backref=db.backref("user", uselist=False))
+    company = db.relationship("Company",backref=db.backref("user", uselist=False))
 
 class Role(db.Model, RoleMixin):
     __tablename__ = "role"

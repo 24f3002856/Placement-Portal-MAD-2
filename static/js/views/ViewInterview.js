@@ -10,8 +10,8 @@ const ViewInterview={
     },
 
     async mounted(){
-        await loadInterview();
-        await loadApplication();
+        await this.loadInterview();
+        await this.loadApplication();
     },
 
     methods:{

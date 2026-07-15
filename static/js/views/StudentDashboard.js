@@ -185,18 +185,27 @@ const StudentDashboard = {
         },
     },
     computed:{
-        my_applications(application){
+        my_applications(){
             return this.applications.filter(application => application.status === "Waiting" || application.status === "Shortlisted" || application.status === "Rejected")
         },
-        interviewapplications(application){
+        interviewapplications(){
             return this.applications.filter(application => application.status === "Interview")
         },
-        pendingplacements(offer){
+        pendingplacements(){
             return this.placements.filter(offer => offer.offer_status === "Pending")
         },
-        acceptedplacements(placement){
+        acceptedplacements(){
             return this.placements.filter(placement => placement.offer_status === "Accepted")
         },
+        noSearchResults() {
+        return this.searchMode &&
+               this.drives.length === 0 &&
+               this.my_applications.length === 0 &&
+               this.interviewapplications.length === 0 &&
+               this.pendingplacements.length === 0 &&
+               this.acceptedplacements.length === 0
+        }
+        
     },
 
     template:`
@@ -499,7 +508,7 @@ const StudentDashboard = {
                         Export Applications
                     </button>
                     </section>
-                    <div class="card shadow mt-2 mb-5 text-center" v-else>
+                    <div class="card shadow mt-2 mb-5 text-center" v-if="noSearchResults">
                         <div class="card-header">
                             <h5>
                                 No match found.

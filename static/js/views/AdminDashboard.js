@@ -138,7 +138,7 @@ const AdminDashboard = {
             }
             catch(error){
                 this.loading = false;
-                cthis.errorMessage = error.error_message || "Unable to load applications.";
+                this.errorMessage = error.error_message || "Unable to load applications.";
                 this.showError = true;
             }
             finally{
@@ -231,6 +231,18 @@ const AdminDashboard = {
         },
         nonselectedApplications(){
             return this.applications.filter(application => application.status != "Selected")
+        },
+        noSearchResults() {
+        return this.searchMode &&
+               this.pendingCompanies.length === 0 &&
+               this.approvedCompanies.length === 0 &&
+               this.blacklistedCompanies.length === 0 &&
+               this.activeStudents.length === 0 &&
+               this.blacklistedStudents.length === 0 &&
+               this.pendingDrives.length === 0 &&
+               this.approvedDrives.length === 0 &&
+               this.nonselectedApplications.length === 0 &&
+               this.placements.length === 0;
         }
     },
 
@@ -744,7 +756,7 @@ const AdminDashboard = {
                     </div>
                     </div>
 
-                    <div class="card shadow mt-2 mb-5 text-center" v-else>
+                    <div class="card shadow mt-2 mb-5 text-center" v-if="noSearchResults">
                         <div class="card-header">
                             <h5>
                                 No match found.
