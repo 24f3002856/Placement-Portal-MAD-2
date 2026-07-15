@@ -216,3 +216,35 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ============================
+# Placement Portal (MAD 2)
+# ============================
+
+# SQLite database
+*.sqlite3
+*.db
+
+# Uploaded user files
+static/uploads/
+static/exports/
+
+# Flask cache
+.webassets-cache/
+
+# Redis
+dump.rdb
+
+# Celery
+celerybeat-schedule
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Operating System files
+.DS_Store
+Thumbs.db
